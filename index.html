@@ -1,0 +1,1319 @@
+<html lang="zh-CN"><head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>图片格式转换器 - 简单高效的在线图片格式转换工具</title>
+  <!-- Tailwind CSS v3 -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Font Awesome -->
+  <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+  
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            primary: '#3b82f6',
+            secondary: '#64748b',
+            success: '#10b981',
+            danger: '#ef4444',
+            warning: '#f59e0b',
+            info: '#06b6d4',
+            light: '#f3f4f6',
+            dark: '#1f2937'
+          },
+          fontFamily: {
+            sans: ['Inter', 'system-ui', 'sans-serif'],
+          },
+          boxShadow: {
+            'card': '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
+            'card-hover': '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
+          }
+        }
+      }
+    }
+  </script>
+  
+  <style type="text/tailwindcss">
+    @layer utilities {
+      .content-auto {
+        content-visibility: auto;
+      }
+      .transition-all-300 {
+        transition: all 300ms ease-in-out;
+      }
+      .glass-effect {
+        background: rgba(255, 255, 255, 0.05);
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+      }
+      .scrollbar-hide::-webkit-scrollbar {
+        display: none;
+      }
+      .scrollbar-hide {
+        -ms-overflow-style: none;
+        scrollbar-width: none;
+      }
+    }
+    
+    /* 自定义样式 */
+    .dropzone {
+      border: 2px dashed #333;
+      transition: all 0.3s ease;
+    }
+    
+    .dropzone.active {
+      border-color: #3b82f6;
+      background-color: rgba(59, 130, 246, 0.05);
+    }
+    
+    .image-preview {
+      max-height: 300px;
+      object-fit: contain;
+    }
+    
+    .quality-slider::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: #3b82f6;
+      cursor: pointer;
+    }
+    
+    .quality-slider::-moz-range-thumb {
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: #3b82f6;
+      cursor: pointer;
+    }
+    
+    .spinner {
+      animation: spin 1s linear infinite;
+    }
+    
+    @keyframes spin {
+      from {
+        transform: rotate(0deg);
+      }
+      to {
+        transform: rotate(360deg);
+      }
+    }
+    
+    .fade-in {
+      animation: fadeIn 0.5s ease-in-out;
+    }
+    
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+        transform: translateY(10px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+    
+    .scale-in {
+      animation: scaleIn 0.3s ease-in-out;
+    }
+    
+    @keyframes scaleIn {
+      from {
+        opacity: 0;
+        transform: scale(0.95);
+      }
+      to {
+        opacity: 1;
+        transform: scale(1);
+      }
+    }
+    
+    /* 打字效果 */
+    .typing-cursor {
+      display: inline-block;
+      width: 2px;
+      height: 1em;
+      background-color: #fff;
+      animation: blink 1s infinite;
+      margin-left: 2px;
+    }
+    
+    @keyframes blink {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0; }
+    }
+    
+    /* 鼠标跟随效果 */
+    .mouse-follow-element {
+      position: fixed;
+      pointer-events: none;
+      z-index: 9999;
+      opacity: 0;
+      transition: opacity 0.3s ease, transform 0.3s ease;
+    }
+    
+    /* 视差滚动效果 */
+    .parallax-bg {
+      transition: filter 0.5s ease, transform 0.5s ease;
+    }
+    
+    /* 文字渐入效果 */
+    .text-reveal {
+      opacity: 0;
+      transform: translateY(20px);
+      transition: opacity 0.8s ease, transform 0.8s ease;
+    }
+    
+    .text-reveal.revealed {
+      opacity: 1;
+      transform: translateY(0);
+    }
+    
+    /* 悬停交互效果 */
+    .hover-scale {
+      transition: transform 0.3s ease;
+    }
+    
+    .hover-scale:hover {
+      transform: scale(1.02);
+    }
+    
+    .hover-info {
+      overflow: hidden;
+    }
+    
+    .hover-info .info-content {
+      max-height: 0;
+      opacity: 0;
+      transition: max-height 0.5s ease, opacity 0.5s ease;
+    }
+    
+    .hover-info:hover .info-content {
+      max-height: 100px;
+      opacity: 1;
+    }
+  </style>
+</head>
+<body class="bg-black text-white min-h-screen font-sans">
+  <!-- 鼠标跟随容器 -->
+  <div id="mouse-follow-container" class="fixed inset-0 pointer-events-none z-10"></div>
+
+  <!-- 顶部导航栏 -->
+  <header class="border-b border-gray-800">
+    <div class="container mx-auto px-4 py-4 flex justify-between items-center">
+      <div class="flex items-center space-x-2">
+        <i class="fa fa-picture-o text-primary text-2xl"></i>
+        <h1 class="text-xl font-light text-white">刘弈专属图片转换器</h1>
+      </div>
+      <div class="text-sm text-gray-400">
+        简单高效的在线图片格式转换工具
+      </div>
+    </div>
+  </header>
+
+  <!-- 主要内容区 -->
+  <main class="container mx-auto px-4 py-12">
+    <!-- 首屏区域 -->
+    <section class="mb-16">
+      <div class="max-w-3xl mx-auto text-center">
+        <h1 class="text-5xl md:text-7xl font-light mb-6">
+          极简<span id="typing-text" class="font-normal">设计</span><span class="typing-cursor"></span>
+        </h1>
+        <p class="text-xl text-gray-400 mb-12">
+          简单、高效的图片格式转换体验
+        </p>
+      </div>
+    </section>
+
+    <!-- 上传区域 -->
+    <section class="mb-16 max-w-4xl mx-auto">
+      <div id="dropzone" class="dropzone rounded-lg p-12 text-center cursor-pointer bg-gray-900 hover:shadow-lg transition-all-300 hover-scale">
+        <div class="flex flex-col items-center justify-center">
+          <i class="fa fa-cloud-upload text-5xl text-gray-500 mb-6"></i>
+          <h2 class="text-2xl font-light mb-4 text-reveal">拖放图片到此处或点击上传</h2>
+          <p class="text-gray-400 mb-8 max-w-md mx-auto text-reveal" style="transition-delay: 0.2s;">
+            支持 JPG、PNG、WEBP、GIF、SVG 等格式，无需安装任何软件
+          </p>
+          <label class="px-8 py-3 bg-transparent border border-primary text-primary rounded-md hover:bg-primary hover:text-white transition-all-300 cursor-pointer text-reveal" style="transition-delay: 0.4s;">
+            <input type="file" id="fileInput" multiple="" accept="image/*" class="hidden">
+            <i class="fa fa-upload mr-2"></i>选择图片
+          </label>
+        </div>
+      </div>
+    </section>
+
+    <!-- 设置区域 -->
+    <section id="settingsSection" class="mb-16 max-w-4xl mx-auto hidden scale-in">
+      <div class="bg-gray-900 p-8 rounded-lg border border-gray-800 hover-scale">
+        <h2 class="text-2xl font-light mb-8 text-reveal">转换设置</h2>
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+          <!-- 目标格式选择 -->
+          <div class="text-reveal" style="transition-delay: 0.2s;">
+            <label for="formatSelect" class="block text-sm font-medium text-gray-400 mb-3">
+              目标格式
+            </label>
+            <div class="relative">
+              <select id="formatSelect" class="block w-full pl-4 pr-10 py-3 text-base border border-gray-700 bg-gray-800 text-white focus:outline-none focus:ring-primary focus:border-primary rounded-md transition-all-300 appearance-none">
+                <option value="image/jpeg">JPG</option>
+                <option value="image/png">PNG</option>
+                <option value="image/webp">WEBP</option>
+                <option value="image/gif">GIF</option>
+                <option value="image/svg+xml">SVG</option>
+              </select>
+              <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-gray-500">
+                <i class="fa fa-chevron-down text-xs"></i>
+              </div>
+            </div>
+          </div>
+
+          <!-- 质量设置 -->
+          <div id="qualityContainer" class="text-reveal" style="transition-delay: 0.4s;">
+            <label for="qualitySlider" class="block text-sm font-medium text-gray-400 mb-3">
+              图片质量: <span id="qualityValue">90%</span>
+            </label>
+            <input type="range" id="qualitySlider" min="10" max="100" value="90" class="quality-slider w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer">
+          </div>
+        </div>
+
+        <!-- 操作按钮 -->
+        <div class="mt-10 flex flex-wrap gap-4 text-reveal" style="transition-delay: 0.6s;">
+          <button id="convertBtn" class="px-8 py-3 bg-primary text-white rounded-md hover:bg-blue-600 transition-all-300 flex items-center">
+            <i class="fa fa-exchange mr-2"></i>转换选中图片
+          </button>
+          <button id="convertAllBtn" class="px-8 py-3 bg-transparent border border-success text-success rounded-md hover:bg-success hover:text-white transition-all-300 flex items-center">
+            <i class="fa fa-exchange mr-2"></i>转换全部图片
+          </button>
+          <button id="clearBtn" class="px-8 py-3 bg-transparent border border-gray-600 text-gray-400 rounded-md hover:bg-gray-800 hover:text-white transition-all-300 flex items-center">
+            <i class="fa fa-trash mr-2"></i>清空列表
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- 预览区域 -->
+    <section id="previewSection" class="mb-16 max-w-5xl mx-auto hidden fade-in">
+      <div class="bg-gray-900 p-8 rounded-lg border border-gray-800 hover-scale">
+        <h2 class="text-2xl font-light mb-8 flex items-center text-reveal">
+          <i class="fa fa-eye mr-3 text-primary"></i>图片预览
+        </h2>
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-10">
+          <!-- 原图预览 -->
+          <div class="text-reveal" style="transition-delay: 0.2s;">
+            <h3 class="text-lg font-light text-gray-400 mb-4">原图</h3>
+            <div id="originalPreview" class="border border-gray-800 rounded-lg p-4 flex items-center justify-center bg-gray-800 min-h-[300px]">
+              <div class="text-center text-gray-500">
+                <i class="fa fa-image text-5xl mb-4"></i>
+                <p class="text-sm">原图预览</p>
+              </div>
+            </div>
+            <div id="originalInfo" class="mt-4 text-sm text-gray-400 hidden hover-info">
+              <div>文件名: <span id="originalFilename" class="text-white"></span></div>
+              <div class="info-content mt-2">
+                <div>尺寸: <span id="originalDimensions" class="text-white"></span></div>
+                <div>大小: <span id="originalSize" class="text-white"></span></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 转换后预览 -->
+          <div class="text-reveal" style="transition-delay: 0.4s;">
+            <h3 class="text-lg font-light text-gray-400 mb-4">转换后</h3>
+            <div id="convertedPreview" class="border border-gray-800 rounded-lg p-4 flex items-center justify-center bg-gray-800 min-h-[300px]">
+              <div class="text-center text-gray-500">
+                <i class="fa fa-image text-5xl mb-4"></i>
+                <p class="text-sm">转换后预览</p>
+              </div>
+            </div>
+            <div id="convertedInfo" class="mt-4 text-sm text-gray-400 hidden hover-info">
+              <div>文件名: <span id="convertedFilename" class="text-white"></span></div>
+              <div class="info-content mt-2">
+                <div>尺寸: <span id="convertedDimensions" class="text-white"></span></div>
+                <div>大小: <span id="convertedSize" class="text-white"></span></div>
+                <div>压缩率: <span id="compressionRatio" class="text-success"></span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 结果区域 -->
+    <section id="resultsSection" class="mb-16 max-w-6xl mx-auto hidden fade-in">
+      <div class="bg-gray-900 p-8 rounded-lg border border-gray-800 hover-scale">
+        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-10 text-reveal">
+          <h2 class="text-2xl font-light flex items-center mb-4 sm:mb-0">
+            <i class="fa fa-check-circle mr-3 text-success"></i>转换结果
+          </h2>
+          <button id="downloadAllBtn" class="px-6 py-2 bg-primary text-white text-sm rounded-md hover:bg-blue-600 transition-all-300 flex items-center">
+            <i class="fa fa-download mr-2"></i>下载全部
+          </button>
+        </div>
+        <div id="resultsList" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+          <!-- 转换结果将在这里动态生成 -->
+        </div>
+      </div>
+    </section>
+
+    <!-- 上传列表 -->
+    <section id="uploadListSection" class="mb-16 max-w-6xl mx-auto hidden fade-in">
+      <div class="bg-gray-900 p-8 rounded-lg border border-gray-800 hover-scale">
+        <h2 class="text-2xl font-light mb-8 flex items-center text-reveal">
+          <i class="fa fa-list mr-3 text-primary"></i>上传列表
+          <span id="fileCount" class="ml-3 px-3 py-1 bg-gray-800 text-white text-sm rounded-full">0</span>
+        </h2>
+        <div id="uploadList" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+          <!-- 上传的图片将在这里动态生成 -->
+        </div>
+      </div>
+    </section>
+
+    <!-- 功能特点 -->
+    <section class="mb-16 max-w-5xl mx-auto">
+      <h2 class="text-3xl font-light mb-12 text-center text-reveal">功能特点</h2>
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+        <div class="p-6 border border-gray-800 rounded-lg bg-gray-900 hover-scale text-reveal" style="transition-delay: 0.2s;">
+          <div class="text-primary text-3xl mb-4">
+            <i class="fa fa-bolt"></i>
+          </div>
+          <h3 class="text-xl font-light mb-3">简单高效</h3>
+          <p class="text-gray-400">拖放上传，一键转换，无需安装任何软件，随时随地使用</p>
+        </div>
+        <div class="p-6 border border-gray-800 rounded-lg bg-gray-900 hover-scale text-reveal" style="transition-delay: 0.4s;">
+          <div class="text-primary text-3xl mb-4">
+            <i class="fa fa-file-image-o"></i>
+          </div>
+          <h3 class="text-xl font-light mb-3">多格式支持</h3>
+          <p class="text-gray-400">支持 JPG、PNG、WEBP、GIF、SVG 等多种图片格式互转</p>
+        </div>
+        <div class="p-6 border border-gray-800 rounded-lg bg-gray-900 hover-scale text-reveal" style="transition-delay: 0.6s;">
+          <div class="text-primary text-3xl mb-4">
+            <i class="fa fa-sliders"></i>
+          </div>
+          <h3 class="text-xl font-light mb-3">质量控制</h3>
+          <p class="text-gray-400">提供质量调节滑块，根据需求平衡文件大小与图片质量</p>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- 底部信息 -->
+  <footer class="border-t border-gray-800 py-12">
+    <div class="container mx-auto px-4 text-center">
+      <p class="text-gray-400">刘弈专属图片转换器 © 2025 | 简单高效的在线图片格式转换工具</p>
+      <p class="mt-4 text-gray-500">支持 JPG、PNG、WEBP、GIF、SVG 等格式转换</p>
+    </div>
+  </footer>
+
+  <!-- 转换中弹窗 -->
+  <div id="convertingModal" class="fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-50 hidden">
+    <div class="bg-gray-900 p-8 rounded-lg border border-gray-800 max-w-md w-full text-center">
+      <div class="spinner inline-block">
+        <i class="fa fa-circle-o-notch text-4xl text-primary"></i>
+      </div>
+      <h3 class="text-xl font-light mt-6 mb-3">正在转换图片</h3>
+      <p id="convertingStatus" class="text-sm text-gray-400">请稍候...</p>
+      <div class="mt-6 w-full bg-gray-800 rounded-full h-2.5">
+        <div id="convertingProgress" class="bg-primary h-2.5 rounded-full" style="width: 0%"></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // 全局变量
+    let uploadedFiles = [];
+    let convertedFiles = [];
+    let currentPreviewIndex = -1;
+    let isConverting = false;
+    let lastMouseX = 0;
+    let lastMouseY = 0;
+    let mouseFollowElements = [];
+
+    // DOM 元素
+    const dropzone = document.getElementById('dropzone');
+    const fileInput = document.getElementById('fileInput');
+    const settingsSection = document.getElementById('settingsSection');
+    const previewSection = document.getElementById('previewSection');
+    const resultsSection = document.getElementById('resultsSection');
+    const uploadListSection = document.getElementById('uploadListSection');
+    const formatSelect = document.getElementById('formatSelect');
+    const qualitySlider = document.getElementById('qualitySlider');
+    const qualityValue = document.getElementById('qualityValue');
+    const qualityContainer = document.getElementById('qualityContainer');
+    const convertBtn = document.getElementById('convertBtn');
+    const convertAllBtn = document.getElementById('convertAllBtn');
+    const clearBtn = document.getElementById('clearBtn');
+    const downloadAllBtn = document.getElementById('downloadAllBtn');
+    const fileCount = document.getElementById('fileCount');
+    const uploadList = document.getElementById('uploadList');
+    const resultsList = document.getElementById('resultsList');
+    const convertingModal = document.getElementById('convertingModal');
+    const convertingStatus = document.getElementById('convertingStatus');
+    const convertingProgress = document.getElementById('convertingProgress');
+    const originalPreview = document.getElementById('originalPreview');
+    const convertedPreview = document.getElementById('convertedPreview');
+    const originalInfo = document.getElementById('originalInfo');
+    const convertedInfo = document.getElementById('convertedInfo');
+    const originalFilename = document.getElementById('originalFilename');
+    const originalDimensions = document.getElementById('originalDimensions');
+    const originalSize = document.getElementById('originalSize');
+    const convertedFilename = document.getElementById('convertedFilename');
+    const convertedDimensions = document.getElementById('convertedDimensions');
+    const convertedSize = document.getElementById('convertedSize');
+    const compressionRatio = document.getElementById('compressionRatio');
+    const mouseFollowContainer = document.getElementById('mouse-follow-container');
+    const typingText = document.getElementById('typing-text');
+
+    // 打字效果
+    function initTypingEffect() {
+      const words = ['转换', '设计', '效率', '简洁'];
+      let wordIndex = 0;
+      let charIndex = 0;
+      let isDeleting = false;
+      const typingSpeed = 100;
+      const pauseTime = 1000;
+
+      function type() {
+        const currentWord = words[wordIndex];
+      
+        if (isDeleting) {
+          // 删除字符
+          typingText.textContent = currentWord.substring(0, charIndex - 1);
+          charIndex--;
+        } else {
+          // 添加字符
+          typingText.textContent = currentWord.substring(0, charIndex + 1);
+          charIndex++;
+        }
+      
+        // 处理删除/添加状态转换
+        if (!isDeleting && charIndex === currentWord.length) {
+          isDeleting = true;
+          setTimeout(type, pauseTime); // 完成单词后暂停
+        } else if (isDeleting && charIndex === 0) {
+          isDeleting = false;
+          wordIndex = (wordIndex + 1) % words.length; // 循环切换单词
+          setTimeout(type, 200); // 短暂暂停后开始新单词
+        } else {
+          // 继续当前操作
+          setTimeout(type, isDeleting ? typingSpeed/2 : typingSpeed);
+        }
+      }
+    
+      type(); // 启动动画
+    }
+
+    // 鼠标跟随效果
+    function initMouseFollowEffect() {
+      const minDistance = 100; // 最小触发距离
+      const maxElements = 5; // 最大同时存在的元素数量
+      
+      document.addEventListener('mousemove', (e) => {
+        const currentX = e.clientX;
+        const currentY = e.clientY;
+      
+        // 计算与上次位置的距离
+        const distance = Math.sqrt(
+          Math.pow(currentX - lastMouseX, 2) + Math.pow(currentY - lastMouseY, 2)
+        );
+      
+        // 如果移动距离足够大，创建新元素
+        if (distance > minDistance) {
+          createFollowElement(currentX, currentY);
+          lastMouseX = currentX;
+          lastMouseY = currentY;
+        }
+      });
+      
+      function createFollowElement(x, y) {
+        // 限制元素数量
+        if (mouseFollowElements.length >= maxElements) {
+          const oldestElement = mouseFollowElements.shift();
+          if (oldestElement && oldestElement.parentNode) {
+            mouseFollowElements[0].parentNode.removeChild(mouseFollowElements[0]);
+          }
+        }
+      
+        // 创建新元素
+        const element = document.createElement('div');
+        element.className = 'mouse-follow-element w-4 h-4 rounded-full bg-primary/30';
+        element.style.left = `${x}px`;
+        element.style.top = `${y}px`;
+      
+        // 添加到容器
+        mouseFollowContainer.appendChild(element);
+        mouseFollowElements.push(element);
+      
+        // 显示元素
+        setTimeout(() => {
+          element.style.opacity = '0.7';
+          element.style.transform = 'scale(1.5)';
+        
+          // 淡出并移除
+          setTimeout(() => {
+            element.style.opacity = '0';
+            element.style.transform = 'scale(0.5)';
+          
+            setTimeout(() => {
+              if (element.parentNode) {
+                element.parentNode.removeChild(element);
+                mouseFollowElements = mouseFollowElements.filter(el => el !== element);
+              }
+            }, 300);
+          }, 500);
+        }, 10);
+      }
+    }
+
+    // 文字渐入效果
+    function initTextReveal() {
+      const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add('revealed');
+            observer.unobserve(entry.target);
+          }
+        });
+      }, {
+        threshold: 0.1,
+        rootMargin: '0px 0px -50px 0px'
+      });
+
+      document.querySelectorAll('.text-reveal').forEach(el => {
+        observer.observe(el);
+      });
+    }
+
+    // 初始化事件监听
+    function initEventListeners() {
+      // 拖放上传
+      dropzone.addEventListener('dragover', handleDragOver);
+      dropzone.addEventListener('dragleave', handleDragLeave);
+      dropzone.addEventListener('drop', handleDrop);
+      dropzone.addEventListener('click', () => fileInput.click());
+      
+      // 文件选择
+      fileInput.addEventListener('change', handleFileSelect);
+      
+      // 格式选择
+      formatSelect.addEventListener('change', handleFormatChange);
+      
+      // 质量滑块
+      qualitySlider.addEventListener('input', handleQualityChange);
+      
+      // 按钮点击
+      convertBtn.addEventListener('click', convertSelectedImage);
+      convertAllBtn.addEventListener('click', convertAllImages);
+      clearBtn.addEventListener('click', clearAll);
+      downloadAllBtn.addEventListener('click', downloadAllImages);
+      
+      // 滚动事件（用于视差效果）
+      window.addEventListener('scroll', handleScroll);
+    }
+
+    // 处理滚动事件
+    function handleScroll() {
+      const scrollY = window.scrollY;
+      const scrollPercent = Math.min(scrollY / window.innerHeight, 1);
+      
+      // 可以在这里添加视差效果
+    }
+
+    // 处理拖放事件
+    function handleDragOver(e) {
+      e.preventDefault();
+      e.stopPropagation();
+      dropzone.classList.add('active');
+    }
+
+    function handleDragLeave(e) {
+      e.preventDefault();
+      e.stopPropagation();
+      dropzone.classList.remove('active');
+    }
+
+    function handleDrop(e) {
+      e.preventDefault();
+      e.stopPropagation();
+      dropzone.classList.remove('active');
+      
+      if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+        processFiles(e.dataTransfer.files);
+      }
+    }
+
+    // 处理文件选择
+    function handleFileSelect(e) {
+      if (e.target.files && e.target.files.length > 0) {
+        processFiles(e.target.files);
+      }
+    }
+
+    // 处理格式变更
+    function handleFormatChange() {
+      const selectedFormat = formatSelect.value;
+      
+      // 显示或隐藏质量设置
+      if (selectedFormat === 'image/jpeg' || selectedFormat === 'image/webp') {
+        qualityContainer.classList.remove('hidden');
+      } else {
+        qualityContainer.classList.add('hidden');
+      }
+      
+      // 如果有当前预览，更新预览
+      if (currentPreviewIndex >= 0 && currentPreviewIndex < uploadedFiles.length) {
+        const file = uploadedFiles[currentPreviewIndex];
+        updatePreview(file);
+      }
+    }
+
+    // 处理质量变更
+    function handleQualityChange() {
+      const quality = qualitySlider.value;
+      qualityValue.textContent = `${quality}%`;
+      
+      // 如果有当前预览，更新预览
+      if (currentPreviewIndex >= 0 && currentPreviewIndex < uploadedFiles.length) {
+        const file = uploadedFiles[currentPreviewIndex];
+        updatePreview(file);
+      }
+    }
+
+    // 处理文件
+    function processFiles(files) {
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        
+        // 检查是否为图片
+        if (!file.type.startsWith('image/')) {
+          continue;
+        }
+        
+        // 检查是否已存在
+        if (uploadedFiles.some(f => f.name === file.name && f.size === file.size)) {
+          continue;
+        }
+        
+        // 创建文件对象
+        const fileObj = {
+          id: Date.now() + i,
+          file: file,
+          name: file.name,
+          size: file.size,
+          type: file.type,
+          previewUrl: URL.createObjectURL(file),
+          selected: true,
+          converted: false,
+          convertedUrl: null,
+          convertedSize: 0
+        };
+        
+        // 获取图片尺寸
+        const img = new Image();
+        img.onload = function() {
+          fileObj.width = img.width;
+          fileObj.height = img.height;
+          
+          // 更新文件列表
+          updateFileList();
+          
+          // 如果是第一张图片，自动预览
+          if (uploadedFiles.length === 1) {
+            previewImage(0);
+          }
+        };
+        img.src = fileObj.previewUrl;
+        
+        // 添加到上传列表
+        uploadedFiles.push(fileObj);
+      }
+      
+      // 更新UI
+      updateUI();
+    }
+
+    // 更新文件列表
+    function updateFileList() {
+      uploadList.innerHTML = '';
+      
+      uploadedFiles.forEach((file, index) => {
+        const fileItem = document.createElement('div');
+        fileItem.className = `border rounded-lg p-4 relative ${file.selected ? 'border-primary bg-gray-800' : 'border-gray-800 bg-gray-900'} hover:shadow-lg transition-all-300 cursor-pointer hover-scale`;
+        fileItem.dataset.index = index;
+        
+        // 文件缩略图
+        const thumbnail = document.createElement('div');
+        thumbnail.className = 'relative aspect-video bg-gray-800 rounded-md overflow-hidden mb-3';
+        thumbnail.innerHTML = `
+          <img src="${file.previewUrl}" alt="${file.name}" class="w-full h-full object-cover">
+          <div class="absolute top-2 right-2">
+            <input type="checkbox" class="file-checkbox w-4 h-4 accent-primary" ${file.selected ? 'checked' : ''}>
+          </div>
+        `;
+        
+        // 文件名
+        const filename = document.createElement('div');
+        filename.className = 'text-sm font-light truncate';
+        filename.textContent = file.name;
+        
+        // 文件信息
+        const fileInfo = document.createElement('div');
+        fileInfo.className = 'text-xs text-gray-500 mt-2';
+        
+        // 如果有尺寸信息，显示
+        if (file.width && file.height) {
+          fileInfo.innerHTML = `
+            ${formatFileSize(file.size)} | ${file.width}×${file.height}
+          `;
+        } else {
+          fileInfo.textContent = formatFileSize(file.size);
+        }
+        
+        // 组装文件项
+        fileItem.appendChild(thumbnail);
+        fileItem.appendChild(filename);
+        fileItem.appendChild(fileInfo);
+        
+        // 点击事件
+        fileItem.addEventListener('click', (e) => {
+          // 如果点击的是复选框，不预览
+          if (e.target.classList.contains('file-checkbox')) {
+            return;
+          }
+          previewImage(index);
+        });
+        
+        // 复选框事件
+        const checkbox = fileItem.querySelector('.file-checkbox');
+        checkbox.addEventListener('change', (e) => {
+          e.stopPropagation();
+          file.selected = checkbox.checked;
+          fileItem.classList.toggle('border-primary', checkbox.checked);
+          fileItem.classList.toggle('bg-gray-800', checkbox.checked);
+          fileItem.classList.toggle('bg-gray-900', !checkbox.checked);
+        });
+        
+        uploadList.appendChild(fileItem);
+      });
+      
+      // 更新文件计数
+      fileCount.textContent = uploadedFiles.length;
+    }
+
+    // 预览图片
+    function previewImage(index) {
+      if (index < 0 || index >= uploadedFiles.length) {
+        return;
+      }
+      
+      currentPreviewIndex = index;
+      const file = uploadedFiles[index];
+      
+      // 高亮选中的文件项
+      const fileItems = uploadList.querySelectorAll('[data-index]');
+      fileItems.forEach((item, i) => {
+        item.classList.toggle('ring-2', i === index);
+        item.classList.toggle('ring-primary', i === index);
+      });
+      
+      // 更新预览
+      updatePreview(file);
+    }
+
+    // 更新预览
+    function updatePreview(file) {
+      // 显示预览区域
+      previewSection.classList.remove('hidden');
+      
+      // 更新原图预览
+      originalPreview.innerHTML = `<img src="${file.previewUrl}" alt="${file.name}" class="image-preview max-w-full max-h-[300px]">`;
+      
+      // 更新原图信息
+      originalFilename.textContent = file.name;
+      
+      if (file.width && file.height) {
+        originalDimensions.textContent = `${file.width}×${file.height}`;
+      } else {
+        originalDimensions.textContent = '未知';
+      }
+      
+      originalSize.textContent = formatFileSize(file.size);
+      originalInfo.classList.remove('hidden');
+      
+      // 如果已经转换过，显示转换后的预览
+      if (file.converted && file.convertedUrl) {
+        convertedPreview.innerHTML = `<img src="${file.convertedUrl}" alt="${file.name}" class="image-preview max-w-full max-h-[300px]">`;
+        
+        // 更新转换后信息
+        const targetFormat = formatSelect.options[formatSelect.selectedIndex].text.toLowerCase();
+        const newFilename = changeFileExtension(file.name, targetFormat);
+        convertedFilename.textContent = newFilename;
+        
+        if (file.width && file.height) {
+          convertedDimensions.textContent = `${file.width}×${file.height}`;
+        } else {
+          convertedDimensions.textContent = '未知';
+        }
+        
+        convertedSize.textContent = formatFileSize(file.convertedSize);
+        
+        // 计算压缩率
+        const ratio = file.size > 0 ? ((1 - file.convertedSize / file.size) * 100).toFixed(1) : 0;
+        compressionRatio.textContent = ratio > 0 ? `节省 ${ratio}%` : '无变化';
+        compressionRatio.className = ratio > 0 ? 'text-success' : 'text-gray-400';
+        
+        convertedInfo.classList.remove('hidden');
+      } else {
+        // 显示转换后占位符
+        convertedPreview.innerHTML = `
+          <div class="text-center text-gray-500">
+            <i class="fa fa-image text-5xl mb-4"></i>
+            <p class="text-sm">点击"转换选中图片"按钮进行转换</p>
+          </div>
+        `;
+        convertedInfo.classList.add('hidden');
+      }
+    }
+
+    // 转换选中的图片
+    function convertSelectedImage() {
+      if (currentPreviewIndex < 0 || currentPreviewIndex >= uploadedFiles.length) {
+        showToast('请先选择要转换的图片', 'warning');
+        return;
+      }
+      
+      const file = uploadedFiles[currentPreviewIndex];
+      
+      // 显示转换中弹窗
+      showConvertingModal(`正在转换: ${file.name}`);
+      
+      // 转换图片
+      convertImage(file)
+        .then(() => {
+          // 更新预览
+          updatePreview(file);
+          
+          // 更新结果列表
+          updateResultsList();
+          
+          // 隐藏转换中弹窗
+          hideConvertingModal();
+          
+          // 显示成功提示
+          showToast('图片转换成功', 'success');
+        })
+        .catch(error => {
+          console.error('转换失败:', error);
+          
+          // 隐藏转换中弹窗
+          hideConvertingModal();
+          
+          // 显示错误提示
+          showToast('图片转换失败: ' + error.message, 'error');
+        });
+    }
+
+    // 转换所有图片
+    function convertAllImages() {
+      const selectedFiles = uploadedFiles.filter(file => file.selected);
+      
+      if (selectedFiles.length === 0) {
+        showToast('请先选择要转换的图片', 'warning');
+        return;
+      }
+      
+      // 显示转换中弹窗
+      showConvertingModal(`正在转换 ${selectedFiles.length} 张图片...`);
+      
+      // 设置进度条
+      convertingProgress.style.width = '0%';
+      
+      // 批量转换
+      let completed = 0;
+      
+      const convertNext = (index) => {
+        if (index >= selectedFiles.length) {
+          // 所有图片转换完成
+          
+          // 更新结果列表
+          updateResultsList();
+          
+          // 隐藏转换中弹窗
+          hideConvertingModal();
+          
+          // 显示成功提示
+          showToast(`成功转换 ${selectedFiles.length} 张图片`, 'success');
+          
+          return;
+        }
+        
+        const file = selectedFiles[index];
+        
+        // 更新状态
+        convertingStatus.textContent = `正在转换: ${file.name} (${index + 1}/${selectedFiles.length})`;
+        
+        // 转换图片
+        convertImage(file)
+          .then(() => {
+            completed++;
+            
+            // 更新进度条
+            const progress = Math.round((completed / selectedFiles.length) * 100);
+            convertingProgress.style.width = `${progress}%`;
+            
+            // 转换下一张
+            convertNext(index + 1);
+          })
+          .catch(error => {
+            console.error('转换失败:', error);
+            
+            // 更新进度条
+            completed++;
+            const progress = Math.round((completed / selectedFiles.length) * 100);
+            convertingProgress.style.width = `${progress}%`;
+            
+            // 继续转换下一张
+            convertNext(index + 1);
+          });
+      };
+      
+      // 开始转换第一张
+      convertNext(0);
+    }
+
+    // 转换图片
+    function convertImage(file) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        
+        reader.onload = function(e) {
+          const img = new Image();
+          
+          img.onload = function() {
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            
+            // 设置画布尺寸
+            canvas.width = img.width;
+            canvas.height = img.height;
+            
+            // 绘制图片
+            ctx.drawImage(img, 0, 0);
+            
+            // 获取目标格式和质量
+            const targetFormat = formatSelect.value;
+            const quality = parseInt(qualitySlider.value) / 100;
+            
+            // 转换图片
+            canvas.toBlob(
+              (blob) => {
+                if (!blob) {
+                  reject(new Error('转换失败'));
+                  return;
+                }
+                
+                // 更新文件对象
+                file.converted = true;
+                file.convertedUrl = URL.createObjectURL(blob);
+                file.convertedSize = blob.size;
+                
+                resolve();
+              },
+              targetFormat,
+              quality
+            );
+          };
+          
+          img.onerror = function() {
+            reject(new Error('图片加载失败'));
+          };
+          
+          img.src = e.target.result;
+        };
+        
+        reader.onerror = function() {
+          reject(new Error('文件读取失败'));
+        };
+        
+        reader.readAsDataURL(file.file);
+      });
+    }
+
+    // 更新结果列表
+    function updateResultsList() {
+      const convertedFiles = uploadedFiles.filter(file => file.converted);
+      
+      if (convertedFiles.length === 0) {
+        resultsSection.classList.add('hidden');
+        return;
+      }
+      
+      resultsSection.classList.remove('hidden');
+      resultsList.innerHTML = '';
+      
+      convertedFiles.forEach((file, index) => {
+        const targetFormat = formatSelect.options[formatSelect.selectedIndex].text.toLowerCase();
+        const newFilename = changeFileExtension(file.name, targetFormat);
+        
+        const resultItem = document.createElement('div');
+        resultItem.className = 'border border-gray-800 rounded-lg overflow-hidden hover:shadow-lg transition-all-300 hover-scale';
+        
+        // 缩略图
+        const thumbnail = document.createElement('div');
+        thumbnail.className = 'relative aspect-video bg-gray-800 overflow-hidden';
+        thumbnail.innerHTML = `
+          <img src="${file.convertedUrl}" alt="${newFilename}" class="w-full h-full object-cover transition-transform duration-500 hover:scale-110">
+        `;
+        
+        // 内容区
+        const content = document.createElement('div');
+        content.className = 'p-4';
+        
+        // 文件名
+        const filename = document.createElement('div');
+        filename.className = 'text-sm font-light truncate';
+        filename.textContent = newFilename;
+        
+        // 文件信息
+        const fileInfo = document.createElement('div');
+        fileInfo.className = 'text-xs text-gray-500 mt-2';
+        
+        if (file.width && file.height) {
+          fileInfo.innerHTML = `
+            ${formatFileSize(file.convertedSize)} | ${file.width}×${file.height}
+          `;
+        } else {
+          fileInfo.textContent = formatFileSize(file.convertedSize);
+        }
+        
+        // 下载按钮
+        const downloadBtn = document.createElement('button');
+        downloadBtn.className = 'mt-4 w-full px-4 py-2 bg-transparent border border-primary text-primary text-sm rounded hover:bg-primary hover:text-white transition-all-300 flex items-center justify-center';
+        downloadBtn.innerHTML = '<i class="fa fa-download mr-2"></i>下载';
+        downloadBtn.addEventListener('click', () => downloadImage(file, newFilename));
+        
+        // 组装内容
+        content.appendChild(filename);
+        content.appendChild(fileInfo);
+        content.appendChild(downloadBtn);
+        
+        // 组装结果项
+        resultItem.appendChild(thumbnail);
+        resultItem.appendChild(content);
+        
+        resultsList.appendChild(resultItem);
+      });
+    }
+
+    // 下载图片
+    function downloadImage(file, filename) {
+      if (!file.converted || !file.convertedUrl) {
+        showToast('图片尚未转换', 'warning');
+        return;
+      }
+      
+      const link = document.createElement('a');
+      link.href = file.convertedUrl;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+
+    // 下载所有图片
+    function downloadAllImages() {
+      const convertedFiles = uploadedFiles.filter(file => file.converted);
+      
+      if (convertedFiles.length === 0) {
+        showToast('没有可下载的图片', 'warning');
+        return;
+      }
+      
+      // 如果只有一张图片，直接下载
+      if (convertedFiles.length === 1) {
+        const file = convertedFiles[0];
+        const targetFormat = formatSelect.options[formatSelect.selectedIndex].text.toLowerCase();
+        const newFilename = changeFileExtension(file.name, targetFormat);
+        downloadImage(file, newFilename);
+        return;
+      }
+      
+      // 如果有多张图片，创建ZIP文件
+      showToast('正在准备下载...', 'info');
+      
+      // 由于浏览器环境限制，我们无法直接创建ZIP文件
+      // 这里我们将逐个下载图片
+      convertedFiles.forEach((file, index) => {
+        const targetFormat = formatSelect.options[formatSelect.selectedIndex].text.toLowerCase();
+        const newFilename = changeFileExtension(file.name, targetFormat);
+        
+        // 延迟下载，避免浏览器阻止
+        setTimeout(() => {
+          downloadImage(file, newFilename);
+          
+          // 最后一张下载完成后显示提示
+          if (index === convertedFiles.length - 1) {
+            showToast(`已开始下载 ${convertedFiles.length} 张图片`, 'success');
+          }
+        }, index * 300);
+      });
+    }
+
+    // 清空所有
+    function clearAll() {
+      if (uploadedFiles.length === 0) {
+        return;
+      }
+      
+      // 释放对象URL
+      uploadedFiles.forEach(file => {
+        if (file.previewUrl) {
+          URL.revokeObjectURL(file.previewUrl);
+        }
+        
+        if (file.converted && file.convertedUrl) {
+          URL.revokeObjectURL(file.convertedUrl);
+        }
+      });
+      
+      // 重置数组
+      uploadedFiles = [];
+      convertedFiles = [];
+      currentPreviewIndex = -1;
+      
+      // 更新UI
+      updateUI();
+      
+      // 隐藏预览和结果区域
+      previewSection.classList.add('hidden');
+      resultsSection.classList.add('hidden');
+      settingsSection.classList.add('hidden');
+      uploadListSection.classList.add('hidden');
+      
+      // 显示提示
+      showToast('已清空所有图片', 'info');
+    }
+
+    // 更新UI
+    function updateUI() {
+      // 更新文件列表
+      updateFileList();
+      
+      // 显示或隐藏设置和上传列表区域
+      if (uploadedFiles.length > 0) {
+        settingsSection.classList.remove('hidden');
+        uploadListSection.classList.remove('hidden');
+      } else {
+        settingsSection.classList.add('hidden');
+        uploadListSection.classList.add('hidden');
+      }
+      
+      // 更新结果列表
+      updateResultsList();
+    }
+
+    // 显示转换中弹窗
+    function showConvertingModal(message) {
+      convertingStatus.textContent = message;
+      convertingProgress.style.width = '0%';
+      convertingModal.classList.remove('hidden');
+      isConverting = true;
+    }
+
+    // 隐藏转换中弹窗
+    function hideConvertingModal() {
+      convertingModal.classList.add('hidden');
+      isConverting = false;
+    }
+
+    // 显示提示
+    function showToast(message, type = 'info') {
+      // 创建提示元素
+      const toast = document.createElement('div');
+      
+      // 设置样式和内容
+      let bgColor = 'bg-primary';
+      let icon = 'fa-info-circle';
+      
+      switch (type) {
+        case 'success':
+          bgColor = 'bg-success';
+          icon = 'fa-check-circle';
+          break;
+        case 'error':
+          bgColor = 'bg-danger';
+          icon = 'fa-exclamation-circle';
+          break;
+        case 'warning':
+          bgColor = 'bg-warning';
+          icon = 'fa-exclamation-triangle';
+          break;
+      }
+      
+      toast.className = `fixed top-6 right-6 ${bgColor} text-white px-6 py-3 rounded-md shadow-lg z-50 flex items-center fade-in`;
+      toast.innerHTML = `
+        <i class="fa ${icon} mr-3 text-lg"></i>
+        <span>${message}</span>
+      `;
+      
+      // 添加到页面
+      document.body.appendChild(toast);
+      
+      // 自动移除
+      setTimeout(() => {
+        toast.classList.add('opacity-0', 'transition-opacity', 'duration-300');
+        
+        setTimeout(() => {
+          if (document.body.contains(toast)) {
+            document.body.removeChild(toast);
+          }
+        }, 300);
+      }, 3000);
+    }
+
+    // 辅助函数：格式化文件大小
+    function formatFileSize(bytes) {
+      if (bytes === 0) return '0 B';
+      
+      const k = 1024;
+      const sizes = ['B', 'KB', 'MB', 'GB'];
+      const i = Math.floor(Math.log(bytes) / Math.log(k));
+      
+      return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+    }
+
+    // 辅助函数：更改文件扩展名
+    function changeFileExtension(filename, newExtension) {
+      const lastDotIndex = filename.lastIndexOf('.');
+      
+      if (lastDotIndex === -1) {
+        return filename + '.' + newExtension;
+      }
+      
+      return filename.substring(0, lastDotIndex) + '.' + newExtension;
+    }
+
+    // 初始化应用
+    function init() {
+      // 初始化事件监听
+      initEventListeners();
+      
+      // 初始化特效
+      initTypingEffect();
+      initMouseFollowEffect();
+      initTextReveal();
+      
+      // 初始化质量设置显示
+      handleFormatChange();
+    }
+
+    // 启动应用
+    init();
+  </script>
+
+</body></html>
